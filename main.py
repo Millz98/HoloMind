@@ -10,44 +10,62 @@ from holomind.optimizers import SGD, Adam, LearningRateScheduler
 from holomind.loss import MeanSquaredError
 from holomind.utils import visualize_model_architecture, visualize_performance_metrics
 
-class PyTorchModel(nn.Module):
-    def __init__(self, model):
-        super(PyTorchModel, self).__init__()
-        self.model = model
+class PyTorchDense(nn.Module):
+    def __init__(self, input_size, output_size):
+        super(PyTorchDense, self).__init__()
+        self.fc = nn.Linear(input_size, output_size)
 
     def forward(self, x):
-        return self.model.forward(x)
+        return self.fc(x)
+
+class PyTorchModel(nn.Module):
+    def __init__(self):
+        super(PyTorchModel, self).__init__()
+        self.fc1 = PyTorchDense(3, 64)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.3)
+        self.fc2 = PyTorchDense(64, 32)
+        self.bn2 = nn.BatchNorm1d(32)
+        self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(0.3)
+        self.fc3 = PyTorchDense(32, 1)
+        self.layers = [
+            {"name": "Dense", "input_size": 3, "output_size": 64},
+            {"name": "BatchNormalization", "input_size": 64},
+            {"name": "ReLU"},
+            {"name": "Dropout", "rate": 0.3},
+            {"name": "Dense", "input_size": 64, "output_size": 32},
+            {"name": "BatchNormalization", "input_size": 32},
+            {"name": "ReLU"},
+            {"name": "Dropout", "rate": 0.3},
+            {"name": "Dense", "input_size": 32, "output_size": 1}
+        ]
+
+    def forward(self, x):
+        x = self.relu1(self.bn1(self.fc1(x)))
+        x = self.dropout1(x)
+        x = self.relu2(self.bn2(self.fc2(x)))
+        x = self.dropout2(x)
+        x = self.fc3(x)
+        return x
 
 def main():
     # Generate some sample data
     X = np.random.rand(100, 3)  # 100 samples, 3 features
     y = np.random.rand(100, 1)  # 100 target values
 
-    # Create a HoloMind model
-    model = Model()
-
-    # Add layers to the model
-    model.add(Dense(input_size=3, output_size=64))  # First layer
-    model.add(BatchNormalization(input_size=64))  # Added batch normalization after the first layer
-    model.add(ReLU())
-    model.add(Dropout(rate=0.3))  # Increased dropout rate
-    model.add(Dense(input_size=64, output_size=32))  # More layers
-    model.add(BatchNormalization(input_size=32))  # Added batch normalization after the second layer
-    model.add(ReLU())
-    model.add(Dropout(rate=0.3))
-    model.add(Dense(input_size=32, output_size=1))  # Output layer
-
-    # Wrap the HoloMind model in a PyTorch model
-    pytorch_model = PyTorchModel(model)
+    # Create a PyTorch model
+    model = PyTorchModel()
 
     # Define a loss function and optimizer
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(pytorch_model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Train the network
     for epoch in range(50):
         optimizer.zero_grad()
-        outputs = pytorch_model(torch.from_numpy(X).float())
+        outputs = model(torch.from_numpy(X).float())
         loss = criterion(outputs, torch.from_numpy(y).float())
         loss.backward()
         optimizer.step()
