@@ -22,10 +22,11 @@ class PyTorchDense(nn.Module):
     def forward(self, x):
         return self.fc(x)
 
+
 class PyTorchModel(nn.Module):
     def __init__(self):
         super(PyTorchModel, self).__init__()
-        self.fc1 = PyTorchDense(3, 64)
+        self.fc1 = PyTorchDense(4, 64)  # Update the input size to 4
         self.bn1 = nn.BatchNorm1d(64)
         self.relu1 = nn.ReLU()
         self.dropout1 = nn.Dropout(0.3)
@@ -35,7 +36,7 @@ class PyTorchModel(nn.Module):
         self.dropout2 = nn.Dropout(0.3)
         self.fc3 = PyTorchDense(32, 1)
         self.layers = [
-            {"name": "Dense", "input_size": 3, "output_size": 64},
+            {"name": "Dense", "input_size": 4, "output_size": 64},
             {"name": "BatchNormalization", "input_size": 64},
             {"name": "ReLU"},
             {"name": "Dropout", "rate": 0.3},
@@ -56,14 +57,23 @@ class PyTorchModel(nn.Module):
 
 def main():
     # Load the dataset
-    dataset = pd.read_csv("twitter.csv")
+    dataset = pd.read_csv("./holomind/twitter.csv")
+
+    # Print the column names
+    print("Column names:")
+    print(dataset.columns)
+
+    # Specify the correct column names
+    column_names = input("Enter the column names (separated by commas): ")
+    column_names = [name.strip() for name in column_names.split(",")]
 
     # Preprocess the data
+    from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler()
-    dataset[['feature1', 'feature2', 'feature3']] = scaler.fit_transform(dataset[['feature1', 'feature2', 'feature3']])
+    dataset[column_names] = scaler.fit_transform(dataset[column_names])
 
     # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(dataset.drop('target', axis=1), dataset['target'], test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(dataset[column_names], dataset['timezone'], test_size=0.2, random_state=42)
 
     # Create a HoloMind dataset object
     holomind_dataset = Dataset(X_train, y_train)
