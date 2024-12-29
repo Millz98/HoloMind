@@ -13,7 +13,6 @@ HoloMind is a lightweight and user-friendly deep learning framework designed for
 ## Installation
 To install HoloMind, clone the repository and install the required dependencies:
 
-```bash
 git clone https://github.com/yourusername/HoloMind.git
 cd HoloMind
 pip install -r requirements.txt
