@@ -3,6 +3,8 @@
 import numpy as np
 import logging
 import matplotlib.pyplot as plt
+import pydot
+from holomind.models import PyTorchModel
 
 
 def configure_logging():
@@ -20,35 +22,30 @@ def visualize_performance(metrics):
 
 def visualize_model_architecture(model):
     """
-    Visualize the model architecture.
+    Visualize the model architecture using Pydot.
 
     Parameters:
     - model: The model to visualize.
     """
-    # Get the layers of the model
-    layers = model.layers
+    # Create a new directed graph
+    graph = pydot.Dot(graph_type='digraph')
 
-    # Create a figure and axis
-    fig, ax = plt.subplots()
+    # Add nodes for each layer
+    for i, layer in enumerate(model.layers):
+        node = pydot.Node(f"Layer {i+1}: {layer['name']}")
+        graph.add_node(node)
 
-    # Plot the layers
-    for i, layer in enumerate(layers):
-        ax.add_patch(plt.Rectangle((i, 0), 1, 1, fill=False))
-        ax.text(i + 0.5, 0.5, layer.__class__.__name__, ha='center')
+    # Add edges to represent connections between layers
+    for i in range(len(model.layers) - 1):
+        edge = pydot.Edge(f"Layer {i+1}: {model.layers[i]['name']}", f"Layer {i+2}: {model.layers[i+1]['name']}")
+        graph.add_edge(edge)
 
-    # Plot the connections between layers
-    for i in range(len(layers) - 1):
-        ax.plot([i + 1, i + 2], [0.5, 0.5], 'k-')
+    # Save the graph to a PNG file
+    graph.write_png('model_architecture.png')
 
-    # Set the limits and labels
-    ax.set_xlim(0, len(layers) + 1)
-    ax.set_ylim(0, 1)
-    ax.set_xlabel('Layer Index')
-    ax.set_ylabel('Layer Type')
-    ax.set_title('Model Architecture')
-
-    # Show the plot
-    plt.show()
+model = PyTorchModel() 
+# Call the function
+visualize_model_architecture(model)
 
 def visualize_performance_metrics(history):
     """
