@@ -9,6 +9,10 @@ from holomind.layers import Dense, ReLU, Dropout, BatchNormalization
 from holomind.optimizers import SGD, Adam, LearningRateScheduler
 from holomind.loss import MeanSquaredError
 from holomind.utils import visualize_model_architecture, visualize_performance_metrics
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from holomind.datasets import Dataset
 
 class PyTorchDense(nn.Module):
     def __init__(self, input_size, output_size):
@@ -51,9 +55,18 @@ class PyTorchModel(nn.Module):
         return x
 
 def main():
-    # Generate some sample data
-    X = np.random.rand(100, 3)  # 100 samples, 3 features
-    y = np.random.rand(100, 1)  # 100 target values
+    # Load the dataset
+    dataset = pd.read_csv("twitter.csv")
+
+    # Preprocess the data
+    scaler = StandardScaler()
+    dataset[['feature1', 'feature2', 'feature3']] = scaler.fit_transform(dataset[['feature1', 'feature2', 'feature3']])
+
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(dataset.drop('target', axis=1), dataset['target'], test_size=0.2, random_state=42)
+
+    # Create a HoloMind dataset object
+    holomind_dataset = Dataset(X_train, y_train)
 
     # Create a PyTorch model
     model = PyTorchModel()
@@ -65,8 +78,8 @@ def main():
     # Train the network
     for epoch in range(50):
         optimizer.zero_grad()
-        outputs = model(torch.from_numpy(X).float())
-        loss = criterion(outputs, torch.from_numpy(y).float())
+        outputs = model(torch.from_numpy(X_train.values).float())
+        loss = criterion(outputs, torch.from_numpy(y_train.values).float())
         loss.backward()
         optimizer.step()
         print(f'Epoch {epoch+1}, Loss: {loss.item()}')
