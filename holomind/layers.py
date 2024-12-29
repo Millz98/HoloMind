@@ -7,12 +7,15 @@ class Dense:
     def __init__(self, input_size, output_size):
         self.weights = np.random.randn(input_size, output_size) * 0.01
         self.biases = np.zeros((1, output_size))
+        self.inputs = None  # Initialize inputs
 
     def forward(self, inputs):
-        # Create a matrix multiplication operation
-        return MatrixMultiply(inputs, self.weights) + self.biases
+        self.inputs = inputs  # Store the inputs for backward pass
+        matmul_op = MatrixMultiply(inputs, self.weights)
+        return matmul_op.forward() + self.biases
 
     def backward(self, d_output):
+        # Use self.inputs to compute gradients
         self.d_weights = np.dot(self.inputs.T, d_output)
         self.d_biases = np.sum(d_output, axis=0, keepdims=True)
         return np.dot(d_output, self.weights.T)

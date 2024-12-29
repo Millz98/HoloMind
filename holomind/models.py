@@ -3,6 +3,7 @@
 from holomind.layers import Dense, ReLU  # Import the necessary layers
 from holomind.loss import MeanSquaredError
 from holomind.optimizers import SGD
+from holomind.operations import MatrixMultiply
 import pickle
 
 class Model:
@@ -20,16 +21,6 @@ class Model:
         """Compile the model with a loss function and optimizer."""
         self.loss_function = loss_function
         self.optimizer = optimizer
-
-    def save(self, filepath):
-        """Save the model's layers to a file."""
-        with open(filepath, 'wb') as f:
-            pickle.dump(self.layers, f)
-
-    def load(self, filepath):
-        """Load the model's layers from a file."""
-        with open(filepath, 'rb') as f:
-            self.layers = pickle.load(f)
 
     def fit(self, X, y, epochs):
         """Train the model for a specified number of epochs."""
@@ -49,8 +40,8 @@ class Model:
         self.inputs = []  # Store inputs for backward pass
         for layer in self.layers:
             self.inputs.append(X)  # Store the input to the layer
-            X = layer.forward(X)
-        return X
+            X = layer.forward(X)  # This now returns an Operation object
+        return X  # Return the final operation object
 
     def backward_pass(self, y, output):
         """Perform the backward pass and return the gradient."""
@@ -68,3 +59,14 @@ class Model:
     def update_weights(self):
         """Update the weights of the model."""
         self.optimizer.update(self.layers)
+
+    def save(self, filepath):
+        """Save the model's layers to a file."""
+        with open(filepath, 'wb') as f:
+            pickle.dump(self.layers, f)    
+
+
+    def load(self, filepath):
+        """Load the model's layers from a file."""
+        with open(filepath, 'rb') as f:
+            self.layers = pickle.load(f)        
