@@ -6,10 +6,6 @@ from holomind.optimizers import SGD
 from holomind.operations import MatrixMultiply
 import pickle
 import logging
-<<<<<<< HEAD
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # Configure logging
-=======
 import torch.nn as nn
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # Configure logging
@@ -57,7 +53,7 @@ class PyTorchModel(nn.Module):
         x = self.fc3(x).squeeze()  # Add the squeeze method here
         return x
 
->>>>>>> ab3a98e2921c070e943d93aff3d839d97cc7ac97
+
 
 class Model:
     def __init__(self):
