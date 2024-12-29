@@ -1,6 +1,7 @@
 # layers.py
 
 import numpy as np
+from holomind.operations import MatrixMultiply
 
 class Dense:
     def __init__(self, input_size, output_size):
@@ -8,8 +9,8 @@ class Dense:
         self.biases = np.zeros((1, output_size))
 
     def forward(self, inputs):
-        self.inputs = inputs
-        return np.dot(inputs, self.weights) + self.biases
+        # Create a matrix multiplication operation
+        return MatrixMultiply(inputs, self.weights) + self.biases
 
     def backward(self, d_output):
         self.d_weights = np.dot(self.inputs.T, d_output)
