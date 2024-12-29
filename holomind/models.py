@@ -43,10 +43,15 @@ class Model:
             X = layer.forward(X)  # This now returns an Operation object
         return X  # Return the final operation object
 
-    def backward_pass(self, y, output):
-        """Perform the backward pass and return the gradient."""
-        gradient_output = self.loss_function.backward(y, output)
-        self.backward(gradient_output)
+    def backward_pass(self, y_true, y_pred):
+        # Compute the gradient of the loss with respect to the predictions
+        loss_gradient = self.loss_function.backward(y_true, y_pred)
+        print(f"Initial loss gradient: {loss_gradient.shape}")  # Debugging
+
+        # Backpropagate through the layers in reverse order
+        for layer in reversed(self.layers):
+            loss_gradient = layer.backward(loss_gradient)
+            print(f"Gradient after {layer.__class__.__name__}: {loss_gradient.shape}")  # Debugging
 
     def backward(self, gradient_output):
         """Perform a backward pass through the model."""
