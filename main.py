@@ -2,7 +2,7 @@
 
 import numpy as np
 from holomind.models import Model
-from holomind.layers import Dense, ReLU, Dropout
+from holomind.layers import Dense, ReLU, Dropout, BatchNormalization
 from holomind.optimizers import SGD
 from holomind.loss import MeanSquaredError
 
@@ -15,16 +15,21 @@ def main():
     model = Model()
 
     # Add layers to the model
-    model.add(Dense(input_size=3, output_size=5))  # Input layer
-    model.add(ReLU())                               # Activation layer
-    model.add(Dropout(rate=0.2))                   # Dropout layer
-    model.add(Dense(input_size=5, output_size=1))  # Output layer
+    model.add(Dense(input_size=3, output_size=64))  # First layer
+    model.add(BatchNormalization(input_size=64))  # Added batch normalization after the first layer
+    model.add(ReLU())
+    model.add(Dropout(rate=0.3))  # Increased dropout rate
+    model.add(Dense(input_size=64, output_size=32))  # More layers
+    model.add(BatchNormalization(input_size=32))  # Added batch normalization after the second layer
+    model.add(ReLU())
+    model.add(Dropout(rate=0.3))
+    model.add(Dense(input_size=32, output_size=1))  # Output layer
 
     # Compile the model with a loss function and optimizer
-    model.compile(loss_function=MeanSquaredError(), optimizer=SGD(learning_rate=0.01))
+    model.compile(loss_function=MeanSquaredError(), optimizer=SGD(learning_rate=0.001))
 
     # Train the model
-    model.fit(X, y, epochs=10)
+    model.fit(X, y, epochs=50)  # Increased epochs
 
     # Print a message indicating training is complete
     print("Training complete!")
