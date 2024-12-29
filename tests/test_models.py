@@ -23,12 +23,12 @@ class TestModel(unittest.TestCase):
         self.model.fit(self.X, self.y, epochs=1)
 
         # Check if the model's output shape is correct after training
-        output = self.model.layers[-1].forward(self.model.layers[-2]. forward(self.model.layers[0].forward(self.X)))
+        output = self.model.forward(self.X)  # Use the model's forward method
         self.assertEqual(output.shape, (2, 1))
 
     def test_loss_function(self):
         # Test the loss function after a forward pass
-        output = self.model.layers[-1].forward(self.model.layers[-2].forward(self.model.layers[0].forward(self.X)))
+        output = self.model.forward(self.X)  # Use the model's forward method
         loss = self.model.loss_function.forward(self.y, output)
         self.assertIsInstance(loss, float)
 
