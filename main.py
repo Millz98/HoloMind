@@ -12,6 +12,7 @@ from holomind.utils import visualize_model_architecture, visualize_performance_m
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 from holomind.datasets import Dataset
 
 class PyTorchDense(nn.Module):
@@ -26,7 +27,8 @@ class PyTorchDense(nn.Module):
 class PyTorchModel(nn.Module):
     def __init__(self):
         super(PyTorchModel, self).__init__()
-        self.fc1 = PyTorchDense(4, 64)  # Update the input size to 4
+        self.flatten = nn.Flatten()
+        self.fc1 = PyTorchDense(9000, 64)  # Update the input size to 4
         self.bn1 = nn.BatchNorm1d(64)
         self.relu1 = nn.ReLU()
         self.dropout1 = nn.Dropout(0.3)
@@ -34,7 +36,7 @@ class PyTorchModel(nn.Module):
         self.bn2 = nn.BatchNorm1d(32)
         self.relu2 = nn.ReLU()
         self.dropout2 = nn.Dropout(0.3)
-        self.fc3 = PyTorchDense(32, 1)
+        self.fc3 = nn.Linear(32, 1)
         self.layers = [
             {"name": "Dense", "input_size": 4, "output_size": 64},
             {"name": "BatchNormalization", "input_size": 64},
@@ -52,7 +54,7 @@ class PyTorchModel(nn.Module):
         x = self.dropout1(x)
         x = self.relu2(self.bn2(self.fc2(x)))
         x = self.dropout2(x)
-        x = self.fc3(x)
+        x = self.fc3(x).squeeze()  # Add the squeeze method here
         return x
 
 def main():
@@ -68,8 +70,13 @@ def main():
     scaler = StandardScaler()
     dataset[numerical_columns] = scaler.fit_transform(dataset[numerical_columns])
 
-    # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(dataset.drop(non_numerical_columns, axis=1), dataset[non_numerical_columns], test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(dataset.drop(non_numerical_columns, axis=1), dataset['ethanol'], test_size=0.2, random_state=42)
+    print(y_train.dtype)
+    
+    
+    le = LabelEncoder()
+    y_train = le.fit_transform(y_train)
+    y_test = le.transform(y_test)
 
     # Create a HoloMind dataset object
     holomind_dataset = Dataset(X_train, y_train)
@@ -85,7 +92,7 @@ def main():
     for epoch in range(50):
         optimizer.zero_grad()
         outputs = model(torch.from_numpy(X_train.values).float())
-        loss = criterion(outputs, torch.from_numpy(y_train.values).float())
+        loss = criterion(outputs, torch.from_numpy(y_train).float())
         loss.backward()
         optimizer.step()
         print(f'Epoch {epoch+1}, Loss: {loss.item()}')
