@@ -1,6 +1,74 @@
 # holomind/utils.py
 
 import numpy as np
+import logging
+import matplotlib.pyplot as plt
+
+
+def configure_logging():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def visualize_performance(metrics):
+    # Plot performance metrics
+    plt.plot(metrics['accuracy'])
+    plt.plot(metrics['loss'])
+    plt.xlabel('Epoch')
+    plt.ylabel('Value')
+    plt.title('Training Performance')
+    plt.legend(['Accuracy', 'Loss'])
+    plt.show()
+
+def visualize_model_architecture(model):
+    """
+    Visualize the model architecture.
+
+    Parameters:
+    - model: The model to visualize.
+    """
+    # Get the layers of the model
+    layers = model.layers
+
+    # Create a figure and axis
+    fig, ax = plt.subplots()
+
+    # Plot the layers
+    for i, layer in enumerate(layers):
+        ax.add_patch(plt.Rectangle((i, 0), 1, 1, fill=False))
+        ax.text(i + 0.5, 0.5, layer.__class__.__name__, ha='center')
+
+    # Plot the connections between layers
+    for i in range(len(layers) - 1):
+        ax.plot([i + 1, i + 2], [0.5, 0.5], 'k-')
+
+    # Set the limits and labels
+    ax.set_xlim(0, len(layers) + 1)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel('Layer Index')
+    ax.set_ylabel('Layer Type')
+    ax.set_title('Model Architecture')
+
+    # Show the plot
+    plt.show()
+
+def visualize_performance_metrics(history):
+    """
+    Visualize the performance metrics.
+
+    Parameters:
+    - history: A dictionary containing the training loss and accuracy over epochs.
+    """
+    # Create a figure and axis
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+
+    # Plot the training loss
+    ax.plot(history['loss'])
+    ax.set_title('Training Loss')
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel('Loss')
+
+    # Show the plot
+    plt.show()   
+    
 
 def one_hot_encode(y, num_classes):
     """

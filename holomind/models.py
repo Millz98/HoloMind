@@ -1,10 +1,13 @@
 # models.py
-
+import numpy as np
 from holomind.layers import Dense, ReLU  # Import the necessary layers
 from holomind.loss import MeanSquaredError
 from holomind.optimizers import SGD
 from holomind.operations import MatrixMultiply
 import pickle
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # Configure logging
 
 class Model:
     def __init__(self):
@@ -12,7 +15,8 @@ class Model:
         self.loss_function = None
         self.optimizer = None
         self.inputs = []  # Store inputs for backward pass
-
+        self.history = {'loss': [], 'accuracy': []}  # Store training history
+    
     def add(self, layer):
         """Add a layer to the model."""
         self.layers.append(layer)
@@ -29,6 +33,8 @@ class Model:
             loss = self.compute_loss(y, output)
             gradient_output = self.backward_pass(y, output)
             self.update_weights()
+            self.history['loss'].append(loss)  # Store the loss
+            # self.history['accuracy'].append(accuracy)  # Store the accuracy (if applicable)
             print(f'Epoch {epoch + 1}/{epochs}, Loss: {loss}')
 
     def compute_loss(self, y, output):
@@ -43,7 +49,20 @@ class Model:
             X = layer.forward(X)  # This now returns an Operation object
         return X  # Return the final operation object
 
-    def backward_pass(self, y_true, y_pred):
+    def backward_pass(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+        """
+        Perform a backward pass through the model to compute gradients.
+
+        Parameters:
+        - y_true: np.ndarray
+            Ground truth labels.
+        - y_pred: np.ndarray
+            Predicted labels.
+
+        Returns:
+        - loss_gradient: np.ndarray
+            Gradient of the loss with respect to the predictions.
+        """
         # Compute the gradient of the loss with respect to the predictions
         loss_gradient = self.loss_function.backward(y_true, y_pred)
         print(f"Initial loss gradient: {loss_gradient.shape}")  # Debugging
@@ -52,6 +71,8 @@ class Model:
         for layer in reversed(self.layers):
             loss_gradient = layer.backward(loss_gradient)
             print(f"Gradient after {layer.__class__.__name__}: {loss_gradient.shape}")  # Debugging
+
+        return loss_gradient
 
     def backward(self, gradient_output):
         """Perform a backward pass through the model."""

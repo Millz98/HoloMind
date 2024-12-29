@@ -5,6 +5,7 @@ from holomind.models import Model
 from holomind.layers import Dense, ReLU, Dropout, BatchNormalization
 from holomind.optimizers import SGD, Adam, LearningRateScheduler
 from holomind.loss import MeanSquaredError
+from holomind.utils import visualize_model_architecture, visualize_performance_metrics
 
 def main():
     # Generate some sample data
@@ -28,8 +29,14 @@ def main():
     # Compile the model with a loss function and optimizer
     model.compile(loss_function=MeanSquaredError(), optimizer=Adam(learning_rate=0.001))
 
-    # Train the model
+     # Train the model
     model.fit(X, y, epochs=50)  # Increased epochs
+
+    # Visualize the model architecture
+    visualize_model_architecture(model)
+
+    # Visualize the performance metrics
+    visualize_performance_metrics(model.history)
 
     # Print a message indicating training is complete
     print("Training complete!")
