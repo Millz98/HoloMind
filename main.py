@@ -57,23 +57,19 @@ class PyTorchModel(nn.Module):
 
 def main():
     # Load the dataset
-    dataset = pd.read_csv("./holomind/twitter.csv")
+    dataset = pd.read_csv("./holomind/gsalc.csv")
 
-    # Print the column names
-    print("Column names:")
-    print(dataset.columns)
+    # Separate numerical columns from non-numerical columns
+    numerical_columns = dataset.select_dtypes(include=['int64', 'float64']).columns
+    non_numerical_columns = dataset.select_dtypes(exclude=['int64', 'float64']).columns
 
-    # Specify the correct column names
-    column_names = input("Enter the column names (separated by commas): ")
-    column_names = [name.strip() for name in column_names.split(",")]
-
-    # Preprocess the data
+    # Apply StandardScaler to numerical columns
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler()
-    dataset[column_names] = scaler.fit_transform(dataset[column_names])
+    dataset[numerical_columns] = scaler.fit_transform(dataset[numerical_columns])
 
     # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(dataset[column_names], dataset['timezone'], test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(dataset.drop(non_numerical_columns, axis=1), dataset[non_numerical_columns], test_size=0.2, random_state=42)
 
     # Create a HoloMind dataset object
     holomind_dataset = Dataset(X_train, y_train)
