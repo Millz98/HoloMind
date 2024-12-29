@@ -6,8 +6,58 @@ from holomind.optimizers import SGD
 from holomind.operations import MatrixMultiply
 import pickle
 import logging
+<<<<<<< HEAD
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # Configure logging
+=======
+import torch.nn as nn
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s') # Configure logging
+
+
+class PyTorchDense(nn.Module):
+    def __init__(self, input_size, output_size):
+        super(PyTorchDense, self).__init__()
+        self.fc = nn.Linear(input_size, output_size)
+
+    def forward(self, x):
+        return self.fc(x)
+    
+    
+class PyTorchModel(nn.Module):
+    def __init__(self):
+        super(PyTorchModel, self).__init__()
+        self.flatten = nn.Flatten()
+        self.fc1 = PyTorchDense(9000, 64)  # Update the input size to 4
+        self.bn1 = nn.BatchNorm1d(64)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.3)
+        self.fc2 = PyTorchDense(64, 32)
+        self.bn2 = nn.BatchNorm1d(32)
+        self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(0.3)
+        self.fc3 = nn.Linear(32, 1)
+        self.layers = [
+            {"name": "Dense", "input_size": 4, "output_size": 64},
+            {"name": "BatchNormalization", "input_size": 64},
+            {"name": "ReLU"},
+            {"name": "Dropout", "rate": 0.3},
+            {"name": "Dense", "input_size": 64, "output_size": 32},
+            {"name": "BatchNormalization", "input_size": 32},
+            {"name": "ReLU"},
+            {"name": "Dropout", "rate": 0.3},
+            {"name": "Dense", "input_size": 32, "output_size": 1}
+        ]
+
+    def forward(self, x):
+        x = self.relu1(self.bn1(self.fc1(x)))
+        x = self.dropout1(x)
+        x = self.relu2(self.bn2(self.fc2(x)))
+        x = self.dropout2(x)
+        x = self.fc3(x).squeeze()  # Add the squeeze method here
+        return x
+
+>>>>>>> ab3a98e2921c070e943d93aff3d839d97cc7ac97
 
 class Model:
     def __init__(self):

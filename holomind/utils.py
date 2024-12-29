@@ -3,6 +3,11 @@
 import numpy as np
 import logging
 import matplotlib.pyplot as plt
+<<<<<<< HEAD
+=======
+import pydot
+from holomind.models import PyTorchModel
+>>>>>>> ab3a98e2921c070e943d93aff3d839d97cc7ac97
 
 
 def configure_logging():
@@ -20,11 +25,16 @@ def visualize_performance(metrics):
 
 def visualize_model_architecture(model):
     """
+<<<<<<< HEAD
     Visualize the model architecture.
+=======
+    Visualize the model architecture using Pydot.
+>>>>>>> ab3a98e2921c070e943d93aff3d839d97cc7ac97
 
     Parameters:
     - model: The model to visualize.
     """
+<<<<<<< HEAD
     # Get the layers of the model
     layers = model.layers
 
@@ -49,6 +59,27 @@ def visualize_model_architecture(model):
 
     # Show the plot
     plt.show()
+=======
+    # Create a new directed graph
+    graph = pydot.Dot(graph_type='digraph')
+
+    # Add nodes for each layer
+    for i, layer in enumerate(model.layers):
+        node = pydot.Node(f"Layer {i+1}: {layer['name']}")
+        graph.add_node(node)
+
+    # Add edges to represent connections between layers
+    for i in range(len(model.layers) - 1):
+        edge = pydot.Edge(f"Layer {i+1}: {model.layers[i]['name']}", f"Layer {i+2}: {model.layers[i+1]['name']}")
+        graph.add_edge(edge)
+
+    # Save the graph to a PNG file
+    graph.write_png('model_architecture.png')
+
+model = PyTorchModel() 
+# Call the function
+visualize_model_architecture(model)
+>>>>>>> ab3a98e2921c070e943d93aff3d839d97cc7ac97
 
 def visualize_performance_metrics(history):
     """

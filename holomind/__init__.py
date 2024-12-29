@@ -11,6 +11,7 @@ from .layers import Dense  # Fully connected layer
 from .optimizers import SGD  # Stochastic Gradient Descent optimizer
 from .models import Model  # Model class to manage layers and training
 from .loss import MeanSquaredError  # Mean Squared Error loss function
+from .datasets import Dataset
 # from .autograd import Autograd  # Uncomment when autograd is implemented
 # from .utils import some_util_function  # Uncomment when utility functions are added
 

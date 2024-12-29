@@ -1,4 +1,5 @@
 certifi==2024.7.4
+<<<<<<< HEAD
 charset-normalizer==3.3.2
 click==8.1.8
 colorama==0.4.6
@@ -28,3 +29,30 @@ tqdm==4.66.4
 transformers==4.42.3
 typing_extensions==4.12.1
 urllib3==2.2.2
+=======
+contourpy==1.3.1
+cycler==0.12.1
+filelock==3.14.0
+fsspec==2024.5.0
+huggingface-hub==0.23.4
+Jinja2==3.1.4
+MarkupSafe==2.1.5
+matplotlib==3.10.0
+mkl==2021.4.0
+networkx==3.3
+pandas==2.2.3
+python-dateutil==2.9.0.post0
+pytz==2024.2
+requests==2.32.3
+scikit-learn==1.6.0
+scipy==1.14.1
+setuptools==75.6.0
+sympy==1.13.1
+threadpoolctl==3.5.0
+tokenizers==0.19.1
+torch==2.5.1
+torchvision==0.20.1
+tqdm==4.66.4
+transformers==4.42.3
+tzdata==2024.2
+>>>>>>> ab3a98e2921c070e943d93aff3d839d97cc7ac97
