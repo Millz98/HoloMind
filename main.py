@@ -3,7 +3,7 @@
 import numpy as np
 from holomind.models import Model
 from holomind.layers import Dense, ReLU, Dropout, BatchNormalization
-from holomind.optimizers import SGD
+from holomind.optimizers import SGD, Adam, LearningRateScheduler
 from holomind.loss import MeanSquaredError
 
 def main():
@@ -26,7 +26,7 @@ def main():
     model.add(Dense(input_size=32, output_size=1))  # Output layer
 
     # Compile the model with a loss function and optimizer
-    model.compile(loss_function=MeanSquaredError(), optimizer=SGD(learning_rate=0.001))
+    model.compile(loss_function=MeanSquaredError(), optimizer=Adam(learning_rate=0.001))
 
     # Train the model
     model.fit(X, y, epochs=50)  # Increased epochs
