@@ -7,20 +7,20 @@ class Dense:
     def __init__(self, input_size, output_size):
         self.weights = np.random.randn(input_size, output_size) * 0.01
         self.biases = np.zeros((1, output_size))
-        self.inputs = None  # Initialize inputs
+        self.inputs = None
 
     def forward(self, inputs):
-        self.inputs = inputs  # Store the inputs for backward pass
-        matmul_op = MatrixMultiply(inputs, self.weights)
-        return matmul_op.forward() + self.biases
+        self.inputs = inputs
+        return np.dot(inputs, self.weights) + self.biases
 
     def backward(self, d_output):
+        print(f"Backward pass d_output shape: {d_output.shape}")  # Debugging
         if self.inputs is None:
             raise ValueError("Inputs must be set before calling backward.")
         
-        self.d_weights = np.dot(self.inputs.T, d_output)
-        self.d_biases = np.sum(d_output, axis=0, keepdims=True)
-        return np.dot(d_output, self.weights.T)
+        self.d_weights = np.dot(self.inputs.T, d_output)  # Shape: (input_size, output_size)
+        self.d_biases = np.sum(d_output, axis=0, keepdims=True)  # Shape: (1, output_size)
+        return np.dot(d_output, self.weights.T)  # Shape: (batch_size, input_size)
 
 class ReLU:
     def forward(self, inputs):
