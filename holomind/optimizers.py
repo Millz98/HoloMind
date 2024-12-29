@@ -23,42 +23,62 @@ class Adam:
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
-        self.m = None  # First moment vector
-        self.v = None  # Second moment vector
+        self.m = []  # First moment vector
+        self.v = []  # Second moment vector
         self.t = 0  # Time step
+
+    def initialize_moments(self, layers):
+        for layer in layers:
+            if hasattr(layer, 'weights'):
+                self.m.append(np.zeros_like(layer.weights))
+                self.v.append(np.zeros_like(layer.weights))
+            if hasattr(layer, 'biases'):
+                self.m.append(np.zeros_like(layer.biases))
+                self.v.append(np.zeros_like(layer.biases))
 
     def update(self, layers):
         """Update the weights of the layers using Adam optimization."""
         if not isinstance(layers, list):
             layers = [layers]  # Convert to a list if a single layer is passed
 
-        if self.m is None:
-            self.m = [np.zeros_like(layer.weights) for layer in layers if hasattr(layer, 'weights')]
-            self.v = [np.zeros_like(layer.weights) for layer in layers if hasattr(layer, 'weights')]
+        if not self.m or not self.v:
+            self.initialize_moments(layers)
 
         self.t += 1
 
-        for i, layer in enumerate(layers):
+        moment_index = 0
+        for layer in layers:
             if hasattr(layer, 'weights'):
                 # Update biased first moment estimate
-                self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * layer.d_weights
+                self.m[moment_index] = self.beta1 * self.m[moment_index] + (1 - self.beta1) * layer.d_weights
                 # Update biased second moment estimate
-                self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * (layer.d_weights ** 2)
+                self.v[moment_index] = self.beta2 * self.v[moment_index] + (1 - self.beta2) * (layer.d_weights ** 2)
 
                 # Compute bias-corrected first moment estimate
-                m_hat = self.m[i] / (1 - self.beta1 ** self.t)
+                m_hat = self.m[moment_index] / (1 - self.beta1 ** self.t)
                 # Compute bias-corrected second moment estimate
-                v_hat = self.v[i] / (1 - self.beta2 ** self.t)
-
-                # Print shapes for debugging
-                print(f"Layer {i}: m_hat shape: {m_hat.shape}, v_hat shape: {v_hat.shape}, d_weights shape: {layer.d_weights.shape}")
+                v_hat = self.v[moment_index] / (1 - self.beta2 ** self.t)
 
                 # Update weights
                 layer.weights -= self.learning_rate * m_hat / (np.sqrt(v_hat) + self.epsilon)
 
+                moment_index += 1
+
+            if hasattr(layer, 'biases'):
+                # Update biased first moment estimate
+                self.m[moment_index] = self.beta1 * self.m[moment_index] + (1 - self.beta1) * np.sum(layer.d_biases, axis=0, keepdims=True)
+                # Update biased second moment estimate
+                self.v[moment_index] = self.beta2 * self.v[moment_index] + (1 - self.beta2) * (np.sum(layer.d_biases ** 2, axis=0, keepdims=True))
+
+                # Compute bias-corrected first moment estimate
+                m_hat = self.m[moment_index] / (1 - self.beta1 ** self.t)
+                # Compute bias-corrected second moment estimate
+                v_hat = self.v[moment_index] / (1 - self.beta2 ** self.t)
+
                 # Update biases
-                print(f"Updating biases: layer.biases shape: {layer.biases.shape}, layer.d_biases shape: {layer.d_biases.shape}")
-                layer.biases -= self.learning_rate * layer.d_biases / (np.sqrt(v_hat) + self.epsilon)
+                layer.biases -= self.learning_rate * m_hat / (np.sqrt(v_hat) + self.epsilon)
+
+                moment_index += 1
 
 
 class LearningRateScheduler:
