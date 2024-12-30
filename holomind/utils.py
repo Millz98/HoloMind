@@ -1,14 +1,14 @@
-# holomind/utils.py
-
 import numpy as np
 import logging
 import matplotlib.pyplot as plt
-import pydot
+import networkx as nx
+
 from holomind.models import PyTorchModel
 
 
 def configure_logging():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def visualize_performance(metrics):
     # Plot performance metrics
@@ -20,32 +20,28 @@ def visualize_performance(metrics):
     plt.legend(['Accuracy', 'Loss'])
     plt.show()
 
-def visualize_model_architecture(model):
-    """
-    Visualize the model architecture using Pydot.
 
-    Parameters:
-    - model: The model to visualize.
-    """
+def visualize_model_architecture(model):
     # Create a new directed graph
-    graph = pydot.Dot(graph_type='digraph')
+    graph = nx.DiGraph()
 
     # Add nodes for each layer
     for i, layer in enumerate(model.layers):
-        node = pydot.Node(f"Layer {i+1}: {layer['name']}")
-        graph.add_node(node)
+        graph.add_node(f"Layer {i+1}: {layer['name']}")
 
     # Add edges to represent connections between layers
     for i in range(len(model.layers) - 1):
-        edge = pydot.Edge(f"Layer {i+1}: {model.layers[i]['name']}", f"Layer {i+2}: {model.layers[i+1]['name']}")
-        graph.add_edge(edge)
+        graph.add_edge(f"Layer {i+1}: {model.layers[i]['name']}", f"Layer {i+2}: {model.layers[i+1]['name']}")
 
-    # Save the graph to a PNG file
-    graph.write_png('model_architecture.png')
+    # Draw the graph
+    pos = nx.spring_layout(graph)
+    nx.draw_networkx_nodes(graph, pos)
+    nx.draw_networkx_labels(graph, pos)
+    nx.draw_networkx_edges(graph, pos)
 
-model = PyTorchModel() 
-# Call the function
-visualize_model_architecture(model)
+    # Show the plot
+    plt.show()
+
 
 def visualize_performance_metrics(history):
     """
@@ -64,19 +60,19 @@ def visualize_performance_metrics(history):
     ax.set_ylabel('Loss')
 
     # Show the plot
-    plt.show()   
-    
+    plt.show()
+
 
 def one_hot_encode(y, num_classes):
     """
     Converts a class vector (integers) to binary class matrix (one-hot encoding).
-    
+
     Parameters:
     - y: array-like, shape (n_samples,)
         Class labels to be converted.
     - num_classes: int
         Total number of classes.
-    
+
     Returns:
     - one_hot: array, shape (n_samples, num_classes)
         Binary class matrix.
@@ -85,10 +81,11 @@ def one_hot_encode(y, num_classes):
     one_hot[np.arange(len(y)), y] = 1
     return one_hot
 
+
 def train_test_split(X, y, test_size=0.2, random_state=None):
     """
     Splits arrays or matrices into random train and test subsets.
-    
+
     Parameters:
     - X: array-like, shape (n_samples, n_features)
         Features to be split.
@@ -98,7 +95,7 @@ def train_test_split(X, y, test_size=0.2, random_state=None):
         Proportion of the dataset to include in the test split.
     - random_state: int, optional (default=None)
         Controls the shuffling applied to the data before applying the split.
-    
+
     Returns:
     - X_train: array-like, shape (n_train_samples, n_features)
         Training features.
@@ -111,22 +108,23 @@ def train_test_split(X, y, test_size=0.2, random_state=None):
     """
     if random_state is not None:
         np.random.seed(random_state)
-    
+
     indices = np.random.permutation(len(X))
     test_size = int(len(X) * test_size)
     test_indices = indices[:test_size]
     train_indices = indices[test_size:]
-    
+
     return X[train_indices], X[test_indices], y[train_indices], y[test_indices]
+
 
 def normalize(X):
     """
     Normalizes the dataset to have zero mean and unit variance.
-    
+
     Parameters:
     - X: array-like, shape (n_samples, n_features)
         Features to be normalized.
-    
+
     Returns:
     - X_normalized: array-like, shape (n_samples, n_features)
         Normalized features.
@@ -134,3 +132,8 @@ def normalize(X):
     mean = np.mean(X, axis=0)
     std = np.std(X, axis=0)
     return (X - mean) / std
+
+
+# Example usage:
+model = PyTorchModel()
+visualize_model_architecture(model)
