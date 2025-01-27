@@ -72,6 +72,7 @@ def main():
     early_stopping_patience = 5
     num_epochs = 50
 
+    # Training loop
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0
