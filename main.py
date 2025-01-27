@@ -72,8 +72,6 @@ def main():
     early_stopping_patience = 5
     num_epochs = 50
 
-    # Training loop
-# Training loop
     for epoch in range(num_epochs):
         model.train()
         epoch_loss = 0
@@ -93,7 +91,7 @@ def main():
             val_outputs = model(X_val_tensor)
             val_loss = criterion(val_outputs, y_val_tensor)
 
-        # Step the scheduler
+ # Step the scheduler
         scheduler.step(val_loss)
 
         # Early stopping check
@@ -108,7 +106,14 @@ def main():
                 print("Early stopping triggered")
                 break
 
-        print(f'Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader)}, Validation Loss: {val_loss.item()}')
+        print(f'Epoch {epoch + 1}, Loss: {epoch_loss / len(train_loader)}, Validation Loss: {val_loss.item()}')
+
+    # Evaluate on the test set
+    model.eval()
+    with torch.no_grad():
+        test_outputs = model(torch.from_numpy(X_test.values).float())
+        test_loss = criterion(test_outputs, torch.from_numpy(y_test).long())
+        print(f'Test Loss: {test_loss.item()}')
 
 if __name__ == "__main__":
     main()
