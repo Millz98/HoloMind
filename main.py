@@ -1,31 +1,27 @@
-# main.py
-from holomind.models import PyTorchModel
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from holomind.models import Model
-from holomind.layers import Dense, ReLU, Dropout, BatchNormalization
-from holomind.optimizers import SGD, Adam, LearningRateScheduler
-from holomind.loss import MeanSquaredError
-from holomind.utils import visualize_model_architecture, visualize_performance_metrics
-import pandas as pd
+from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
-from holomind.datasets import Dataset
-from torch.utils.data import DataLoader, TensorDataset
+import pandas as pd
 
-class PyTorchModel(nn.Module):
+# Define your model with Batch Normalization and Dropout
+class YourModel(nn.Module):
     def __init__(self, input_size, num_classes):
-        super(PyTorchModel, self).__init__()
+        super(YourModel, self).__init__()
         self.fc1 = nn.Linear(input_size, 128)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(128, num_classes)  # Output raw logits
+        self.batch_norm1 = nn.BatchNorm1d(128)
+        self.dropout = nn.Dropout(0.3)
+        self.fc2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
         x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)  # No softmax here
+        x = self.batch_norm1(x)
+        x = nn.ReLU()(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
         return x
 
 def main():
@@ -62,18 +58,22 @@ def main():
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
-    # Create a PyTorch model
+    # Initialize model, criterion, optimizer, and scheduler
     input_size = X_train.shape[1]  # Number of features
     num_classes = len(le.classes_)  # Number of unique classes
-    model = PyTorchModel(input_size, num_classes)
+    model = YourModel(input_size, num_classes)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.5)
 
-    # Define a loss function and optimizer
-    criterion = nn.CrossEntropyLoss()  # Use CrossEntropyLoss for classification
-    optimizer = optim.Adam(model.parameters(), lr=0.001)  # Define optimizer here
+    # Training loop with early stopping
+    best_val_loss = float('inf')
+    epochs_without_improvement = 0
+    early_stopping_patience = 5
+    num_epochs = 50
 
-    # Train the network
-    for epoch in range(50):
-        model.train()  # Set the model to training mode
+    for epoch in range(num_epochs):
+        model.train()
         epoch_loss = 0
 
         for batch_X, batch_y in train_loader:
@@ -81,16 +81,32 @@ def main():
             outputs = model(batch_X)
             loss = criterion(outputs, batch_y)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
             optimizer.step()
             epoch_loss += loss.item()
 
-        # Validation
-        model.eval()  # Set the model to evaluation mode
+        # Validation step
+        model.eval()
         with torch.no_grad():
             val_outputs = model(X_val_tensor)
             val_loss = criterion(val_outputs, y_val_tensor)
 
-        print(f'Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader)}, Validation Loss: { val_loss.item()}')  # Print average loss for the epoch and validation loss
+        # Step the scheduler
+        scheduler.step(val_loss)
+
+        # Early stopping check
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            epochs_without_improvement = 0
+            # Save the model if needed
+            torch.save(model.state_dict(), 'best_model.pth')  # Save the best model
+        else:
+            epochs_without_improvement += 1
+            if epochs_without_improvement >= early_stopping_patience:
+                print("Early stopping triggered")
+                break
+
+        print(f'Epoch {epoch+1}, Loss: {epoch_loss / len(train_loader)}, Validation Loss: {val_loss.item()}')
 
 if __name__ == "__main__":
     main()
