@@ -6,7 +6,24 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import os
 
+
+# $env:debug = "2"; python main.py <<<<< copy this command to run with debug level 2
+# Get the value of the 'debug' environment variable
+debug_level = os.getenv('debug')
+
+# Check the value and print corresponding messages
+if debug_level == '2':
+    print("Debug level is set to 2: Verbose logging enabled.")
+    # You can add more verbose logging or debugging information here
+elif debug_level == '1':
+    print("Debug level is set to 1: Standard logging.")
+    # You can add standard logging information here
+else:
+    print("Debug level is not set or is set to 0: No debug information.")
+    # Normal operation without debug information
+    
 # Define your model with Batch Normalization and Dropout
 class YourModel(nn.Module):
     def __init__(self, input_size, num_classes):
