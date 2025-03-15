@@ -33,7 +33,7 @@ def validate_data(file_path):
         logging.info(f"Duplicate Rows: {df.duplicated().sum()}")
         logging.info(f"Descriptive Statistics:\n{df.describe()}")
 
-        if df.isnull().sum().sum() > 0: #Check if any null values exist.
+        if df.isnull().sum().sum() > 0:  # Check if any null values exist.
             logging.warning("Warning: Missing values found in the data.")
 
         if df.duplicated().sum() > 0:
@@ -58,6 +58,10 @@ def load_and_preprocess_data(config):
         # One-Hot Encode '100ppb'
         dataset = pd.get_dummies(dataset, columns=['100ppb'])
 
+        # Label Encode the target variable
+        le = LabelEncoder()
+        dataset[config["target_column"]] = le.fit_transform(dataset[config["target_column"]])
+
     except Exception as e:
         logging.critical(f"An error occurred during data validation: {e}")
         raise
@@ -73,12 +77,13 @@ def load_and_preprocess_data(config):
     X = dataset.drop(columns=config["target_column"])
     y = dataset[config["target_column"]]
 
-    le = LabelEncoder()
-    y_encoded = le.fit_transform(y)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=config["test_size"], random_state=config["random_state"], stratify=y)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=config["random_state"], stratify=y_temp)
 
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y_encoded, test_size=config["test_size"], random_state=config["random_state"])
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=config["random_state"])
+    # Check class distribution
+    print(pd.Series(y_train).value_counts())
 
+    # Replace ADASYN with SMOTE
     smote = SMOTE(random_state=config["random_state"])
     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
@@ -88,11 +93,12 @@ def load_and_preprocess_data(config):
     X_test = X_test.astype(float)
 
     X_train_tensor = torch.from_numpy(X_train_resampled.values).float()
-    y_train_tensor = torch.from_numpy(y_train_resampled).long()
+    # Convert y_train_resampled to NumPy array
+    y_train_tensor = torch.from_numpy(y_train_resampled.values).long() #added .values
     X_val_tensor = torch.from_numpy(X_val.values).float()
-    y_val_tensor = torch.from_numpy(y_val).long()
+    y_val_tensor = torch.from_numpy(y_val.values).long() #added .values
     X_test_tensor = torch.from_numpy(X_test.values).float()
-    y_test_tensor = torch.from_numpy(y_test).long()
+    y_test_tensor = torch.from_numpy(y_test.values).long() #added .values
 
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
@@ -168,7 +174,7 @@ def evaluate_model(model, X_test_tensor, y_test_tensor, le):
 
         accuracy = accuracy_score(actual, predicted)
         precision = precision_score(actual, predicted, average='weighted', zero_division=0)
-        recall = recall_score(actual, predicted, average='weighted', zero_division=0)
+        recall = recall_score (actual, predicted, average='weighted', zero_division=0)
         f1 = f1_score(actual, predicted, average='weighted', zero_division=0)
         conf_matrix = confusion_matrix(actual, predicted)
 
@@ -183,7 +189,7 @@ def main():
     num_classes = len(le.classes_)
     model = create_model(input_size, num_classes, config)
     y_train_resampled = train_loader.dataset.tensors[1].numpy()
-    train_model(model, train_loader, X_val_tensor, y_val_tensor, config,y_train_resampled)
+    train_model(model, train_loader, X_val_tensor, y_val_tensor, config, y_train_resampled)
     model.load_state_dict(torch.load(config["model_save_path"], weights_only=True))
     evaluate_model(model, X_test_tensor, y_test_tensor, le)
 
