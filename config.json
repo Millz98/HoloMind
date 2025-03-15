@@ -9,7 +9,7 @@
     "learning_rate": 0.001,
     "weight_decay": 1e-5,
     "grad_clip": 1.0,
-    "num_epochs": 50,
+    "num_epochs": 55,
     "early_stopping_patience": 5,
     "model_save_path": "best_model.pth",
     "debug_level": 2

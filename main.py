@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.utils import class_weight
+from imblearn.over_sampling import SMOTE
 import pandas as pd
 import os
 import logging
@@ -43,8 +45,12 @@ def load_and_preprocess_data(config):
     X_train, X_temp, y_train, y_temp = train_test_split(X, y_encoded, test_size=config["test_size"], random_state=config["random_state"])
     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=config["random_state"])
 
-    X_train_tensor = torch.from_numpy(X_train.values).float()
-    y_train_tensor = torch.from_numpy(y_train).long()
+    smote = SMOTE(random_state=config["random_state"])
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+
+    # Convert X_train_resampled to NumPy array
+    X_train_tensor = torch.from_numpy(X_train_resampled.values).float()
+    y_train_tensor = torch.from_numpy(y_train_resampled).long()
     X_val_tensor = torch.from_numpy(X_val.values).float()
     y_val_tensor = torch.from_numpy(y_val).long()
     X_test_tensor = torch.from_numpy(X_test.values).float()
@@ -66,9 +72,12 @@ def create_model(input_size, num_classes, config):
     )
     return model
 
-def train_model(model, train_loader, X_val_tensor, y_val_tensor, config):
+def train_model(model, train_loader, X_val_tensor, y_val_tensor, config, y_train_resampled):
     """Trains the neural network model."""
-    criterion = nn.CrossEntropyLoss()
+    class_weights = class_weight.compute_class_weight('balanced', classes=np.unique(y_train_resampled), y=y_train_resampled)
+    class_weights_tensor = torch.tensor(class_weights, dtype=torch.float)
+    criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+
     optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config["num_epochs"])
 
@@ -135,7 +144,8 @@ def main():
     input_size = X_val_tensor.shape[1]
     num_classes = len(le.classes_)
     model = create_model(input_size, num_classes, config)
-    train_model(model, train_loader, X_val_tensor, y_val_tensor, config)
+    y_train_resampled = train_loader.dataset.tensors[1].numpy()
+    train_model(model, train_loader, X_val_tensor, y_val_tensor, config,y_train_resampled)
     model.load_state_dict(torch.load(config["model_save_path"], weights_only=True))
     evaluate_model(model, X_test_tensor, y_test_tensor, le)
 
