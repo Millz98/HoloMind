@@ -8,8 +8,6 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import os
 
-
-# $env:debug = "2"; python main.py <<<<< copy this command to run with debug level 2
 # Get the value of the 'debug' environment variable
 debug_level = os.getenv('debug')
 
@@ -23,7 +21,7 @@ elif debug_level == '1':
 else:
     print("Debug level is not set or is set to 0: No debug information.")
     # Normal operation without debug information
-    
+
 # Define your model with Batch Normalization and Dropout
 class YourModel(nn.Module):
     def __init__(self, input_size, num_classes):
@@ -108,7 +106,7 @@ def main():
             val_outputs = model(X_val_tensor)
             val_loss = criterion(val_outputs, y_val_tensor)
 
- # Step the scheduler
+        # Step the scheduler
         scheduler.step(val_loss)
 
         # Early stopping check
