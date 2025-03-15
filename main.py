@@ -5,89 +5,77 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import pandas as pd
 import os
+import logging
+import json
 
-# Get the value of the 'debug' environment variable
-debug_level = os.getenv('debug')
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Check the value and print corresponding messages
-if debug_level == '2':
-    print("Debug level is set to 2: Verbose logging enabled.")
-    # You can add more verbose logging or debugging information here
-elif debug_level == '1':
-    print("Debug level is set to 1: Standard logging.")
-    # You can add standard logging information here
-else:
-    print("Debug level is not set or is set to 0: No debug information.")
-    # Normal operation without debug information
+def load_config(config_path="config.json"):
+    """Loads configuration from a JSON file."""
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    return config
 
-# Define your model with Batch Normalization and Dropout
-class YourModel(nn.Module):
-    def __init__(self, input_size, num_classes):
-        super(YourModel, self).__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.batch_norm1 = nn.BatchNorm1d(128)
-        self.dropout = nn.Dropout(0.3)
-        self.fc2 = nn.Linear(128, num_classes)
+def load_and_preprocess_data(config):
+    """Loads and preprocesses data."""
+    try:
+        dataset = pd.read_csv(config["data_path"])
+    except FileNotFoundError:
+        logging.error(f"File not found: {config['data_path']}")
+        raise
 
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.batch_norm1(x)
-        x = nn.ReLU()(x)
-        x = self.dropout(x)
-        x = self.fc2(x)
-        return x
-
-def main():
-    # Load the dataset
-    dataset = pd.read_csv("./holomind/gsalc.csv")
-
-    # Separate numerical columns from non-numerical columns
     numerical_columns = dataset.select_dtypes(include=['int64', 'float64']).columns
     non_numerical_columns = dataset.select_dtypes(exclude=['int64', 'float64']).columns
 
-    # Apply StandardScaler to numerical columns
     scaler = StandardScaler()
     dataset[numerical_columns] = scaler.fit_transform(dataset[numerical_columns])
 
-    # Split the dataset into features and target variable
     X = dataset.drop(non_numerical_columns, axis=1)
-    y = dataset['ethanol']  # Assuming 'ethanol' is the target variable
+    y = dataset[config["target_column"]]
 
-    # Encode the target variable
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
 
-    # Split the dataset into training, validation, and test sets
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y_encoded, test_size=config["test_size"], random_state=config["random_state"])
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=config["random_state"])
 
-    # Convert to PyTorch tensors
     X_train_tensor = torch.from_numpy(X_train.values).float()
-    y_train_tensor = torch.from_numpy(y_train).long()  # Use long for class labels
+    y_train_tensor = torch.from_numpy(y_train).long()
     X_val_tensor = torch.from_numpy(X_val.values).float()
-    y_val_tensor = torch.from_numpy(y_val).long()  # Use long for class labels
+    y_val_tensor = torch.from_numpy(y_val).long()
+    X_test_tensor = torch.from_numpy(X_test.values).float()
+    y_test_tensor = torch.from_numpy(y_test).long()
 
-    # Create DataLoader for mini-batch training
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
 
-    # Initialize model, criterion, optimizer, and scheduler
-    input_size = X_train.shape[1]  # Number of features
-    num_classes = len(le.classes_)  # Number of unique classes
-    model = YourModel(input_size, num_classes)
+    return train_loader, X_val_tensor, y_val_tensor, X_test_tensor, y_test_tensor, le
+
+def create_model(input_size, num_classes, config):
+    """Creates the neural network model."""
+    model = nn.Sequential(
+        nn.Linear(input_size, config["hidden_size"]),
+        nn.BatchNorm1d(config["hidden_size"]),
+        nn.ReLU(),
+        nn.Dropout(config["dropout_rate"]),
+        nn.Linear(config["hidden_size"], num_classes)
+    )
+    return model
+
+def train_model(model, train_loader, X_val_tensor, y_val_tensor, config):
+    """Trains the neural network model."""
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.5)
+    optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config["num_epochs"])
 
-    # Training loop with early stopping
     best_val_loss = float('inf')
     epochs_without_improvement = 0
-    early_stopping_patience = 5
-    num_epochs = 50
 
-    for epoch in range(num_epochs):
+    for epoch in range(config["num_epochs"]):
         model.train()
         epoch_loss = 0
 
@@ -96,39 +84,60 @@ def main():
             outputs = model(batch_X)
             loss = criterion(outputs, batch_y)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config["grad_clip"])
             optimizer.step()
             epoch_loss += loss.item()
 
-        # Validation step
+            if config["debug_level"] == 2:
+                logging.info(f"Epoch: {epoch + 1}, Batch Loss: {loss.item()}, LR: {optimizer.param_groups[0]['lr']}")
+
         model.eval()
         with torch.no_grad():
             val_outputs = model(X_val_tensor)
             val_loss = criterion(val_outputs, y_val_tensor)
 
-        # Step the scheduler
-        scheduler.step(val_loss)
+        scheduler.step()
 
-        # Early stopping check
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_without_improvement = 0
-            # Save the model if needed
-            torch.save(model.state_dict(), 'best_model.pth')  # Save the best model
+            torch.save(model.state_dict(), config["model_save_path"])
         else:
             epochs_without_improvement += 1
-            if epochs_without_improvement >= early_stopping_patience:
-                print("Early stopping triggered")
+            if epochs_without_improvement >= config["early_stopping_patience"]:
+                logging.info("Early stopping triggered")
                 break
 
-        print(f'Epoch {epoch + 1}, Loss: {epoch_loss / len(train_loader)}, Validation Loss: {val_loss.item()}')
+        logging.info(f'Epoch {epoch + 1}, Loss: {epoch_loss / len(train_loader)}, Validation Loss: {val_loss.item()}')
 
-    # Evaluate on the test set
+def evaluate_model(model, X_test_tensor, y_test_tensor, le):
+    """Evaluates the trained model."""
     model.eval()
     with torch.no_grad():
-        test_outputs = model(torch.from_numpy(X_test.values).float())
-        test_loss = criterion(test_outputs, torch.from_numpy(y_test).long())
-        print(f'Test Loss: {test_loss.item()}')
+        test_outputs = model(X_test_tensor)
+        test_loss = nn.CrossEntropyLoss()(test_outputs, y_test_tensor)
+        predicted = torch.argmax(test_outputs, dim=1).numpy()
+        actual = y_test_tensor.numpy()
+
+        accuracy = accuracy_score(actual, predicted)
+        precision = precision_score(actual, predicted, average='weighted', zero_division=0)
+        recall = recall_score(actual, predicted, average='weighted', zero_division=0)
+        f1 = f1_score(actual, predicted, average='weighted', zero_division=0)
+        conf_matrix = confusion_matrix(actual, predicted)
+
+        logging.info(f'Test Loss: {test_loss.item()}')
+        logging.info(f'Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}, F1: {f1}')
+        logging.info(f'Confusion Matrix:\n{conf_matrix}')
+
+def main():
+    config = load_config()
+    train_loader, X_val_tensor, y_val_tensor, X_test_tensor, y_test_tensor, le = load_and_preprocess_data(config)
+    input_size = X_val_tensor.shape[1]
+    num_classes = len(le.classes_)
+    model = create_model(input_size, num_classes, config)
+    train_model(model, train_loader, X_val_tensor, y_val_tensor, config)
+    model.load_state_dict(torch.load(config["model_save_path"], weights_only=True))
+    evaluate_model(model, X_test_tensor, y_test_tensor, le)
 
 if __name__ == "__main__":
     main()

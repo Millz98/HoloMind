@@ -1,0 +1,16 @@
+{
+    "data_path": "./holomind/gsalc.csv",
+    "target_column": "ethanol",
+    "test_size": 0.2,
+    "random_state": 42,
+    "batch_size": 32,
+    "hidden_size": 128,
+    "dropout_rate": 0.3,
+    "learning_rate": 0.001,
+    "weight_decay": 1e-5,
+    "grad_clip": 1.0,
+    "num_epochs": 50,
+    "early_stopping_patience": 5,
+    "model_save_path": "best_model.pth",
+    "debug_level": 2
+}
