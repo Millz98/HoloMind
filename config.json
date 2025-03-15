@@ -2,15 +2,22 @@
     "data_path": "./holomind/gsalc.csv",
     "target_column": "ethanol",
     "test_size": 0.2,
+    "num_folds": 5,
     "random_state": 42,
     "batch_size": 32,
-    "hidden_size": 128,
-    "dropout_rate": 0.3,
+    "hidden_size": 256,
+    "dropout_rate": 0.4,
     "learning_rate": 0.001,
-    "weight_decay": 1e-5,
+    "weight_decay": 1e-4,
     "grad_clip": 1.0,
     "num_epochs": 55,
-    "early_stopping_patience": 5,
+    "early_stopping_patience": 10,
     "model_save_path": "best_model.pth",
-    "debug_level": 2
+    "debug_level": 2,
+    "lr_scheduler": "ReduceLROnPlateau",
+    "lr_scheduler_params": {
+        "factor": 0.1,
+        "patience": 5,
+        "min_lr": 1e-6
+    }
 }
