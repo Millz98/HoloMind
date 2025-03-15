@@ -22,21 +22,55 @@ def load_config(config_path="config.json"):
         config = json.load(f)
     return config
 
+def validate_data(file_path):
+    """Validates the CSV data and returns a Pandas DataFrame."""
+    try:
+        df = pd.read_csv(file_path)
+
+        logging.info("--- Data Validation ---")
+        logging.info(f"Missing Values:\n{df.isnull().sum()}")
+        logging.info(f"Data Types:\n{df.dtypes}")
+        logging.info(f"Duplicate Rows: {df.duplicated().sum()}")
+        logging.info(f"Descriptive Statistics:\n{df.describe()}")
+
+        if df.isnull().sum().sum() > 0: #Check if any null values exist.
+            logging.warning("Warning: Missing values found in the data.")
+
+        if df.duplicated().sum() > 0:
+            logging.warning('Warning: Duplicate rows found in the data.')
+
+        return df
+
+    except FileNotFoundError:
+        logging.error(f"Error: File not found at {file_path}")
+        raise
+    except pd.errors.ParserError:
+        logging.error("Error: CSV parsing failed. Check for formatting issues.")
+        raise
+
 def load_and_preprocess_data(config):
     """Loads and preprocesses data."""
     try:
-        dataset = pd.read_csv(config["data_path"])
-    except FileNotFoundError:
-        logging.error(f"File not found: {config['data_path']}")
+        logging.info(f"Loading data from: {config['data_path']}")
+        dataset = validate_data(config['data_path'])
+        logging.info("Data validation successful.")
+
+        # One-Hot Encode '100ppb'
+        dataset = pd.get_dummies(dataset, columns=['100ppb'])
+
+    except Exception as e:
+        logging.critical(f"An error occurred during data validation: {e}")
         raise
 
     numerical_columns = dataset.select_dtypes(include=['int64', 'float64']).columns
-    non_numerical_columns = dataset.select_dtypes(exclude=['int64', 'float64']).columns
+
+    # Remove the target variable from numerical columns
+    numerical_columns = numerical_columns.drop(labels=config["target_column"], errors='ignore')
 
     scaler = StandardScaler()
     dataset[numerical_columns] = scaler.fit_transform(dataset[numerical_columns])
 
-    X = dataset.drop(non_numerical_columns, axis=1)
+    X = dataset.drop(columns=config["target_column"])
     y = dataset[config["target_column"]]
 
     le = LabelEncoder()
@@ -48,7 +82,11 @@ def load_and_preprocess_data(config):
     smote = SMOTE(random_state=config["random_state"])
     X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
 
-    # Convert X_train_resampled to NumPy array
+    # Convert to numeric DataFrame
+    X_train_resampled = X_train_resampled.astype(float)
+    X_val = X_val.astype(float)
+    X_test = X_test.astype(float)
+
     X_train_tensor = torch.from_numpy(X_train_resampled.values).float()
     y_train_tensor = torch.from_numpy(y_train_resampled).long()
     X_val_tensor = torch.from_numpy(X_val.values).float()
@@ -59,7 +97,7 @@ def load_and_preprocess_data(config):
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     train_loader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
 
-    return train_loader, X_val_tensor, y_val_tensor, X_test_tensor, y_test_tensor, le
+    return train_loader, X_val_tensor, y_val_tensor, X_test_tensor, y_test_tensor, le, dataset
 
 def create_model(input_size, num_classes, config):
     """Creates the neural network model."""
@@ -140,7 +178,7 @@ def evaluate_model(model, X_test_tensor, y_test_tensor, le):
 
 def main():
     config = load_config()
-    train_loader, X_val_tensor, y_val_tensor, X_test_tensor, y_test_tensor, le = load_and_preprocess_data(config)
+    train_loader, X_val_tensor, y_val_tensor, X_test_tensor, y_test_tensor, le, dataset = load_and_preprocess_data(config)
     input_size = X_val_tensor.shape[1]
     num_classes = len(le.classes_)
     model = create_model(input_size, num_classes, config)
